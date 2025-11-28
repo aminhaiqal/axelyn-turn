@@ -90,3 +90,51 @@ func (r *TicketRepository) GetByStatus(ctx context.Context, queueID int, status 
 
     return tickets, nil
 }
+
+func (r *TicketRepository) ReserveNext(ctx context.Context, queueID int) (*models.Ticket, error) {
+    tx, err := r.db.BeginTx(ctx, nil)
+    if err != nil {
+        return nil, err
+    }
+
+    query := `
+        SELECT id, queue_id, customer_name, status, priority, created_at, updated_at, estimated_time, version
+        FROM tickets
+        WHERE queue_id=$1 AND status='waiting'
+        ORDER BY created_at ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+    `
+
+    t := &models.Ticket{}
+    err = tx.QueryRowContext(ctx, query, queueID).Scan(
+        &t.ID, &t.QueueID, &t.CustomerName, &t.Status, &t.Priority,
+        &t.CreatedAt, &t.UpdatedAt, &t.EstimatedTime, &t.Version,
+    )
+    if err == sql.ErrNoRows {
+        tx.Rollback()
+        return nil, nil
+    }
+    if err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    _, err = tx.ExecContext(ctx, `
+        UPDATE tickets
+        SET status='processing', updated_at=NOW(), version=version+1
+        WHERE id=$1
+    `, t.ID)
+    if err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    err = tx.Commit()
+    if err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    return t, nil
+}

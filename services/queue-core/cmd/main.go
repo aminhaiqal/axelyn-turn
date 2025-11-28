@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-    connStr := os.Getenv("POSTGRES_URL") // e.g., postgres://user:pass@localhost:5432/queue
+    connStr := os.Getenv("DATABASE_URL")
     dbConn, err := db.Connect(connStr)
     if err != nil {
         log.Fatal(err)
