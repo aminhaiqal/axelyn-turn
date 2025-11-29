@@ -4,7 +4,6 @@ go 1.25.4
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
