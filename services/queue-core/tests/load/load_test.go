@@ -2,17 +2,33 @@ package load
 
 import (
 	"context"
+	"os"
 	"sync"
 	"testing"
 	"strconv"
 	"time"
+	"queue-core/internal/db"
 	"queue-core/internal/models"
+	"queue-core/internal/repositories"
 	"queue-core/internal/services"
 )
 
 func TestConcurrentTicketCreation(t *testing.T) {
-	// Setup your service (repo + Redis)
-	var service *services.TicketService // init with real or mock connections
+	// Setup service with real database and Redis connections
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		t.Skip("DATABASE_URL not set, skipping load test")
+	}
+
+	dbConn, err := db.Connect(connStr)
+	if err != nil {
+		t.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer dbConn.Close()
+
+	rdb := db.NewRedisClient().Client
+	repo := repositories.NewTicketRepo(dbConn)
+	service := services.NewTicketService(repo, rdb, "queue.stream", "queue.%d.broadcast")
 
 	ctx := context.Background()
 	const n = 100 // number of concurrent requests
