@@ -3,6 +3,7 @@ package unit
 import (
 	"context"
 	"testing"
+	"time"
 	"queue-core/internal/models"
 	"queue-core/internal/repositories"
 
@@ -17,9 +18,11 @@ func TestTicketRepository_Create(t *testing.T) {
 
 	repo := repositories.NewTicketRepo(db)
 
+	now := time.Now()
 	mock.ExpectQuery("INSERT INTO tickets").
 		WithArgs(1, "John Doe", "waiting", 1, 10).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(1, "2025-11-28", "2025-11-28"))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "version"}).
+			AddRow(1, now, now, 1))
 
 	ticket := &models.Ticket{
 		QueueID:       1,
